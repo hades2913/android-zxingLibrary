@@ -47,6 +47,10 @@ public class CaptureFragment extends Fragment implements SurfaceHolder.Callback 
     private SurfaceHolder surfaceHolder;
     private CodeUtils.AnalyzeCallback analyzeCallback;
     private Camera camera;
+    private ArrayList<String> scanResultArrayList=new ArrayList<String>();
+    private int startpt;
+    private int maxpt;
+    
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -54,7 +58,8 @@ public class CaptureFragment extends Fragment implements SurfaceHolder.Callback 
 
 
         CameraManager.init(getActivity().getApplication());
-
+        startpt=ZApplication.getInstance.getStartPosition();
+        maxpt=ZApplication.getInstance.getMaxPosition();
         hasSurface = false;
         inactivityTimer = new InactivityTimer(this.getActivity());
     }
@@ -137,7 +142,47 @@ public class CaptureFragment extends Fragment implements SurfaceHolder.Callback 
             }
         } else {
             if (analyzeCallback != null) {
-                analyzeCallback.onAnalyzeSuccess(barcode, result.getText());
+                 if (ZApplication.getInstance.getParentActivity().equals("METER")) {
+                if (resultString.length() != 22) {
+                    continuePreview();
+                } else {
+                    playBeepSoundAndVibrate();
+                    Intent resultIntent = new Intent();
+                    Bundle bundle = new Bundle();
+                    bundle.putString("result", resultString);
+                    resultIntent.putExtras(bundle);
+                    this.setResult(RESULT_OK, resultIntent);
+                    analyzeCallback.onAnalyzeSuccess(barcode, result.getText());
+                    //MipcaActivityCapture.this.finish();
+                }
+            } else if (ZApplication.getInstance..equals("USER")) {
+                if (resultString.length() != 22 && resultString.length() != 12&& resultString.length() != 13) {
+                    continuePreview();
+                } else {
+                    if (!scanResultArrayList.contains(resultString)) {
+                        scanResultArrayList.add(resultString);
+
+                        if (startpt == maxpt - 1) {
+                            setIntentBack();
+                            analyzeCallback.onAnalyzeSuccess(barcode, result.getText());
+                        }
+                        startpt++;
+                        playBeepSoundAndVibrate();
+                        Toast toast = Toast.makeText(getActivity.this,
+                                "已扫描" + scanResultArrayList.size()
+                                        + "个条码，当前条码为:-->>" + resultString,
+                                Toast.LENGTH_SHORT);
+                        showMyToast(toast, 800);
+                        setIntentBack();
+                        continuePreview();
+                    } else {
+                        Toast toast = Toast.makeText(getActivity.this, "重复扫码！",
+                                Toast.LENGTH_SHORT);
+                        showMyToast(toast, 800);
+                        continuePreview();
+                    }
+                }
+            } 
             }
         }
     }
@@ -269,6 +314,62 @@ public class CaptureFragment extends Fragment implements SurfaceHolder.Callback 
          * @param e If is's null,means success.otherwise Camera init failed with the Exception.
          */
         void callBack(Exception e);
+    }
+
+    // 实现连续扫码！
+    private void continuePreview() {
+
+        // 2，然后创建一个Runnable对象
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                // TODO Auto-generated method stub
+                SurfaceView surfaceView = (SurfaceView) findViewById(R.id.preview_view);
+                SurfaceHolder surfaceHolder = surfaceView.getHolder();
+                initCamera(surfaceHolder);
+                if (handler != null) {
+                    handler.restartPreviewAndDecode();
+                }
+                // 要做的事情，这里再次调用此Runnable对象，以实现每两秒实现一次的定时器操作
+                // handler.postDelayed(this, 2000);
+            }
+        };
+        // 3，使用PostDelayed方法，两秒后调用此Runnable对象
+        handler.postDelayed(runnable, 1000);
+
+    }
+    public void setIntentBack() {
+        Intent resultIntent = new Intent();
+        Bundle bundle = new Bundle();
+        bundle.putStringArrayList("result", scanResultArrayList);
+        resultIntent.putExtras(bundle);
+        this.setResult(RESULT_OK, resultIntent);
+    }
+    //字典已显示毫秒数
+    public void showMyToast(final Toast toast, final int cnt) {
+        final Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                toast.show();
+            }
+        }, 0, 3000);
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                toast.cancel();
+                timer.cancel();
+            }
+        }, cnt);
+    }
+    private void playBeepSoundAndVibrate() {
+        if (playBeep && mediaPlayer != null) {
+            mediaPlayer.start();
+        }
+        if (vibrate) {
+            Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+            vibrator.vibrate(VIBRATE_DURATION);
+        }
     }
 
 
