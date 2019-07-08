@@ -29,7 +29,7 @@ public class ZApplication extends Application{
     }
     public int startPosition=1;
     public void setStartPosition(int startPosition){
-      this.startPosition=startPosition;
+        this.startPosition=startPosition;    
     }
     public int getStartPosition(){
        return this.startPosition;
@@ -40,5 +40,12 @@ public class ZApplication extends Application{
     }
     public int getMaxPosition(){
         return this.maxPosition;
+    }
+    public String parentActivity="USER";
+    public void setParentActivity(String parentActivity){
+        this.parentActivity=parentActivity;
+    }
+    public String getParentActivity(){
+        return this.parentActivity;    
     }
 }
