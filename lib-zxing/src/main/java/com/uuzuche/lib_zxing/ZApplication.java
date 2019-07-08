@@ -27,6 +27,13 @@ public class ZApplication extends Application{
         DisplayUtil.screenWidthDip = DisplayUtil.px2dip(getApplicationContext(), dm.widthPixels);
         DisplayUtil.screenHightDip = DisplayUtil.px2dip(getApplicationContext(), dm.heightPixels);
     }
+    public static ZApplication getInstance(){
+        if(null==instance){
+        instance=new ZApplication();
+        }
+        return instance;
+    
+    }
     public int startPosition=1;
     public void setStartPosition(int startPosition){
         this.startPosition=startPosition;    
