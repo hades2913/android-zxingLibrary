@@ -1,5 +1,6 @@
 package com.uuzuche.lib_zxing.activity;
 
+import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.hardware.Camera;
@@ -16,17 +17,27 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.Result;
 import com.uuzuche.lib_zxing.R;
+import com.uuzuche.lib_zxing.ZApplication;
+import com.uuzuche.lib_zxing.activity.CaptureActivity;
+import com.uuzuche.lib_zxing.activity.CodeUtils;
 import com.uuzuche.lib_zxing.camera.CameraManager;
 import com.uuzuche.lib_zxing.decoding.CaptureActivityHandler;
 import com.uuzuche.lib_zxing.decoding.InactivityTimer;
 import com.uuzuche.lib_zxing.view.ViewfinderView;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.Vector;
+
+import static android.app.Activity.RESULT_OK;
+import static android.content.Context.VIBRATOR_SERVICE;
 
 /**
  * 自定义实现的扫描Fragment
@@ -50,7 +61,7 @@ public class CaptureFragment extends Fragment implements SurfaceHolder.Callback 
     private ArrayList<String> scanResultArrayList=new ArrayList<String>();
     private int startpt;
     private int maxpt;
-    
+    View view = null;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -58,8 +69,8 @@ public class CaptureFragment extends Fragment implements SurfaceHolder.Callback 
 
 
         CameraManager.init(getActivity().getApplication());
-        startpt=ZApplication.getInstance.getStartPosition();
-        maxpt=ZApplication.getInstance.getMaxPosition();
+        startpt= ZApplication.getInstance().getStartPosition();
+        maxpt=ZApplication.getInstance().getMaxPosition();
         hasSurface = false;
         inactivityTimer = new InactivityTimer(this.getActivity());
     }
@@ -69,7 +80,7 @@ public class CaptureFragment extends Fragment implements SurfaceHolder.Callback 
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
         Bundle bundle = getArguments();
-        View view = null;
+        
         if (bundle != null) {
             int layoutId = bundle.getInt(CodeUtils.LAYOUT_ID);
             if (layoutId != -1) {
@@ -132,57 +143,57 @@ public class CaptureFragment extends Fragment implements SurfaceHolder.Callback 
      * @param result
      * @param barcode
      */
-    public void handleDecode(Result result, Bitmap barcode) {
+   public void handleDecode(Result result, Bitmap barcode) {
         inactivityTimer.onActivity();
-        playBeepSoundAndVibrate();
-
+//        playBeepSoundAndVibrate();
+        String resultString = result.getText();
         if (result == null || TextUtils.isEmpty(result.getText())) {
             if (analyzeCallback != null) {
                 analyzeCallback.onAnalyzeFailed();
             }
         } else {
             if (analyzeCallback != null) {
-                 if (ZApplication.getInstance.getParentActivity().equals("METER")) {
-                if (resultString.length() != 22) {
-                    continuePreview();
-                } else {
-                    playBeepSoundAndVibrate();
-                    Intent resultIntent = new Intent();
-                    Bundle bundle = new Bundle();
-                    bundle.putString("result", resultString);
-                    resultIntent.putExtras(bundle);
-                    this.setResult(RESULT_OK, resultIntent);
-                    analyzeCallback.onAnalyzeSuccess(barcode, result.getText());
-                    //MipcaActivityCapture.this.finish();
-                }
-            } else if (ZApplication.getInstance..equals("USER")) {
-                if (resultString.length() != 22 && resultString.length() != 12&& resultString.length() != 13) {
-                    continuePreview();
-                } else {
-                    if (!scanResultArrayList.contains(resultString)) {
-                        scanResultArrayList.add(resultString);
-
-                        if (startpt == maxpt - 1) {
-                            setIntentBack();
-                            analyzeCallback.onAnalyzeSuccess(barcode, result.getText());
-                        }
-                        startpt++;
-                        playBeepSoundAndVibrate();
-                        Toast toast = Toast.makeText(getActivity.this,
-                                "已扫描" + scanResultArrayList.size()
-                                        + "个条码，当前条码为:-->>" + resultString,
-                                Toast.LENGTH_SHORT);
-                        showMyToast(toast, 800);
-                        setIntentBack();
+                if (com.example.administrator.myapplication.ZApplication.getInstance().getParentActivity().equals("METER")) {
+                    if (resultString.length() != 22) {
                         continuePreview();
                     } else {
-                        Toast toast = Toast.makeText(getActivity.this, "重复扫码！",
-                                Toast.LENGTH_SHORT);
-                        showMyToast(toast, 800);
+                        playBeepSoundAndVibrate();
+                        Intent resultIntent = new Intent();
+                        Bundle bundle = new Bundle();
+                        bundle.putString("result", resultString);
+                        resultIntent.putExtras(bundle);
+                        getActivity().setResult(RESULT_OK, resultIntent);
+                        analyzeCallback.onAnalyzeSuccess(barcode, result.getText());
+                        //MipcaActivityCapture.this.finish();
+                    }
+                } else if (com.example.administrator.myapplication.ZApplication.getInstance().equals("USER")) {
+                    if (resultString.length() != 22 && resultString.length() != 12&& resultString.length() != 13) {
                         continuePreview();
+                    } else {
+                        if (!scanResultArrayList.contains(resultString)) {
+                            scanResultArrayList.add(resultString);
+
+                            if (startpt == maxpt - 1) {
+                                setIntentBack();
+                                analyzeCallback.onAnalyzeSuccess(barcode, result.getText());
+                            }
+                            startpt++;
+                            playBeepSoundAndVibrate();
+                            Toast toast = Toast.makeText(getActivity(),
+                                    "已扫描" + scanResultArrayList.size()
+                                            + "个条码，当前条码为:-->>" + resultString,
+                                    Toast.LENGTH_SHORT);
+                            showMyToast(toast, 800);
+                            setIntentBack();
+                            continuePreview();
+                        } else {
+                            Toast toast = Toast.makeText(getActivity(), "重复扫码！",
+                                    Toast.LENGTH_SHORT);
+                            showMyToast(toast, 800);
+                            continuePreview();
+                        }
                     }
                 }
-            } 
             }
         }
     }
@@ -324,7 +335,7 @@ public class CaptureFragment extends Fragment implements SurfaceHolder.Callback 
             @Override
             public void run() {
                 // TODO Auto-generated method stub
-                SurfaceView surfaceView = (SurfaceView) findViewById(R.id.preview_view);
+                SurfaceView surfaceView = (SurfaceView) view.findViewById(R.id.preview_view);
                 SurfaceHolder surfaceHolder = surfaceView.getHolder();
                 initCamera(surfaceHolder);
                 if (handler != null) {
@@ -343,7 +354,7 @@ public class CaptureFragment extends Fragment implements SurfaceHolder.Callback 
         Bundle bundle = new Bundle();
         bundle.putStringArrayList("result", scanResultArrayList);
         resultIntent.putExtras(bundle);
-        this.setResult(RESULT_OK, resultIntent);
+        getActivity().setResult(RESULT_OK, resultIntent);
     }
     //字典已显示毫秒数
     public void showMyToast(final Toast toast, final int cnt) {
@@ -362,15 +373,4 @@ public class CaptureFragment extends Fragment implements SurfaceHolder.Callback 
             }
         }, cnt);
     }
-    private void playBeepSoundAndVibrate() {
-        if (playBeep && mediaPlayer != null) {
-            mediaPlayer.start();
-        }
-        if (vibrate) {
-            Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
-            vibrator.vibrate(VIBRATE_DURATION);
-        }
-    }
-
-
 }
